@@ -79,7 +79,9 @@ public class Scanner {
             case '/' :
                 if (match('/')) {
                     // it goes for comment, and comment goes to the last of line
-                    while(peek() != '\n' && isAtEnd()) advance();
+                    while(peek() != '\n' && !isAtEnd()) advance();
+                } else if (match('*')) {
+                    comments();
                 } else {
                     addToken(SLASH);
                 }
@@ -100,13 +102,9 @@ public class Scanner {
             case '"' : string(); break;
 
             default:
-                if (isDigit(c)){
-                    number();
-                } else if (isAlpha(c)) {
-                    identifier();
-                } else {
-                    Lox.error(line, "Unexpected character in expression.");
-                }
+                if (isDigit(c)) number();
+                else if (isAlpha(c)) identifier();
+                else Lox.error(line, "Unexpected character in expression.");
                 break;
         }
     }
@@ -116,6 +114,27 @@ public class Scanner {
         if(source.charAt(current) != expected) return false;
         current++;
         return true;
+    }
+    private void comments() {
+        int nested = 1;
+
+        while (nested > 0 && !isAtEnd()){
+            if (peek() == '\n') line++;
+            if (peek() == '/' && peekNext() == '*') {
+                advance();
+                advance();
+                nested++;
+                continue;
+            }
+            if (peek() == '*' && peekNext() == '/') {
+                advance();
+                advance();
+                nested--;
+                continue;
+            }
+            advance();
+        }
+        if (nested > 0) Lox.error(line, "The comment is not closed.");
     }
 
     private void string() {
